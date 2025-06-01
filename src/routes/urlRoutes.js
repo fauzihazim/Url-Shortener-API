@@ -1,7 +1,12 @@
 import express from "express";
-import { getUrl } from "../controllers/url.js";
+import { addUrl, api, getLongUrl } from "../controllers/url.js";
 
 const app = express();
-app.get('/:id', getUrl);
+app.use(express.json())
+
+// const app = express.Router();
+app.get('/:id', getLongUrl);
+app.post('/addUrl', addUrl);
+app.post('/api/data', api);
 
 export default app;

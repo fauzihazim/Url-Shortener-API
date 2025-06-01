@@ -1,0 +1,26 @@
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Url {
+  id            Int         @id @default(autoincrement())
+  longUrl       String      @db.Text
+  shortUrl     String      @unique @db.VarChar(10)
+  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+}
+
+// CREATE TABLE urls (
+//     id INT AUTO_INCREMENT PRIMARY KEY,
+//     long_url TEXT NOT NULL,
+//     short_code VARCHAR(10) UNIQUE NOT NULL,  -- e.g., "abc123"
+//     user_id INT,                             -- Optional: Link to user who created it
+//     clicks INT DEFAULT 0,
+//     expires_at TIMESTAMP NULL,               -- Optional: Link expiration
+//     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//     FOREIGN KEY (user_id) REFERENCES users(id)
+// );

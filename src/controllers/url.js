@@ -1,10 +1,10 @@
-import express from 'express';
+// import express from 'express';
 import { PrismaClient, Prisma } from "@prisma/client";
 
-const app = express();
+// const app = express();
 const prisma = new PrismaClient();
 
-app.get('/:id', async (req, res) => {
+export const getUrl = async (req, res) => {
     const shortUrl = req.params.id;
     try {
         const longUrl = await prisma.url.findUnique({
@@ -35,4 +35,4 @@ app.get('/:id', async (req, res) => {
             details: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
-})
+}

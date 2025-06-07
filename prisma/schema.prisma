@@ -12,4 +12,16 @@ model Url {
   longUrl       String      @db.Text
   shortUrl      String      @unique @db.VarChar(255)
   createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  // Foreign key relation to User
+  user          User?        @relation(fields: [idUser], references: [id])
+  idUser        Int?         // Foreign key column (must match User.id type)
+}
+
+model User {
+  id            Int         @id @default(autoincrement())
+  username      String      @unique
+  password      String?
+  verifiedAt    DateTime?
+  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  urls Url[]
 }

@@ -81,8 +81,6 @@ export const addUrl = async (req, res) => {
                 error: 'Invalid URL format'
             });
         }
-        console.log("Halo");
-        
         const newUrl = await prisma.url.create({
             data: {
                 longUrl,
@@ -90,8 +88,6 @@ export const addUrl = async (req, res) => {
                 createdAt: nowDatetime()
             }
         })
-
-        // Update with short code
         const updatedUrl = await prisma.url.update({
             where: { id: newUrl.id },
             data: { shortUrl: generateShort(newUrl.id) },

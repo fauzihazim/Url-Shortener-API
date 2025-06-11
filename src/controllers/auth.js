@@ -125,8 +125,11 @@ export const registerUser = async (req, res) => {
     newUser.log();
     const saveUser = await newUser.save();
     console.log("Saving user id, ", saveUser);
-    await sendVerificationEmail(email, saveUser.user.id);
-    return res.status(201).json({  
+    const verificationToken = generateVerificationToken();
+    await sendVerificationEmail(email, verificationToken);
+    console.log("Verification token: ", verificationToken);
+    await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
+    return res.status(201).json({
       status  : "success",
       message : "User registered successfully, please check verification in your Gmail"
     });
@@ -154,12 +157,9 @@ const findingUser = async (email) => {
 
 
 
-const sendVerificationEmail = async (email, userId) => {
-  console.log("The User Id ", userId);
-  
-  const verificationToken = generateVerificationToken();
+const sendVerificationEmail = async (email, verificationToken) => {
   console.log(`Send Verification to Email ${email}`);
-  const verificationUrl = `http://localhost:3000/${verificationToken}`;
+  const verificationUrl = `http://localhost:3000/verify/${verificationToken}`;
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -185,13 +185,14 @@ const sendVerificationEmail = async (email, userId) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
-    await prisma.verificationToken.create({
-      data: {
-        idUser: userId,
-        token: verificationToken,
-        tokenExpire: tokenExpired(),
-      }
-    }),
+    // await prisma.verificationToken.deleteMany({ where: { idUser: 10 } }),
+    // await prisma.verificationToken.create({
+    //   data: {
+    //     idUser: userId,
+    //     token: verificationToken,
+    //     tokenExpire: tokenExpired(),
+    //   }
+    // }),
     console.log('Email sent:', info.response);
     return info;
   } catch (error) {
@@ -229,9 +230,9 @@ export const askNewToken = async() => {
       prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
       prisma.verificationToken.create({
         data: {
-          idUser: findUser.id,
-          createdAt: generateVerificationToken(),
-          userType: tokenExpired(),
+          idUser: userId,
+          token: verificationToken,
+          tokenExpire: tokenExpired(),
         }
       }),
     ]);
@@ -240,6 +241,56 @@ export const askNewToken = async() => {
     return newVerificationToken
   } catch (error) {
     console.error("Failed generate new verification Token: ", error);
+    throw error; // This will be caught by registerUser's try-catch
+  }
+}
+
+const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
+  try {
+    await prisma.$transaction([
+      prisma.verificationToken.deleteMany({ where: { idUser: userId } }),
+      prisma.verificationToken.create({
+        data: {
+          idUser: userId,
+          token: verificationToken,
+          tokenExpire: tokenExpired(),
+        }
+      }),
+    ]);
+  } catch (error) {
+    console.error("Failed generate new verification Token: ", error);
+    throw error; // This will be caught by registerUser's try-catch
+  }
+}
+
+export const userVerification = async (req, res) => {
+  const token = req.params.token;
+  console.log("verify user with token ", token);
+  try {
+    let userId = await prisma.verificationToken.findFirst({
+      where: {
+        token, // Replace with your unique identifier
+      },
+      select: {
+        idUser: true
+      },
+    });
+    if (!userId) {
+      res.send("User isn't found");
+      return;
+    }
+    userId = userId.idUser
+    await prisma.traditionalUser.update({
+      where: {
+        idUser: userId,
+      },
+      data: {
+        verifiedAt: new Date(),
+      },
+    })
+    res.send("verify user with token " + token + " the user id is " + userId);
+  } catch (error) {
+    console.error("Failed verify the verification Token: ", error);
     throw error; // This will be caught by registerUser's try-catch
   }
 }

@@ -185,14 +185,6 @@ const sendVerificationEmail = async (email, verificationToken) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
-    // await prisma.verificationToken.deleteMany({ where: { idUser: 10 } }),
-    // await prisma.verificationToken.create({
-    //   data: {
-    //     idUser: userId,
-    //     token: verificationToken,
-    //     tokenExpire: tokenExpired(),
-    //   }
-    // }),
     console.log('Email sent:', info.response);
     return info;
   } catch (error) {
@@ -200,12 +192,6 @@ const sendVerificationEmail = async (email, verificationToken) => {
     throw error; // This will be caught by registerUser's try-catch
   }
 }
-
-// const setVerificationAndExpiredToken = () => {
-//   const verificationToken = generateVerificationToken();
-//   const tokenExpired = tokenExpired();
-//   return
-// }
 
 const generateVerificationToken = () => {
   return nanoid(32); // 32-character URL-friendly ID
@@ -218,13 +204,6 @@ const tokenExpired = () => {
 export const askNewToken = async() => {
   const email = req.params.id;
   try {
-    // const deleteUsers = await prisma.user.deleteMany({
-    //   where: {
-    //     idUser: {
-    //       contains: 24,
-    //     },
-    //   },
-    // })
     const findUser = await findingUser(data.email);
     await prisma.$transaction([
       prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
@@ -267,28 +246,69 @@ export const userVerification = async (req, res) => {
   const token = req.params.token;
   console.log("verify user with token ", token);
   try {
-    let userId = await prisma.verificationToken.findFirst({
+    if (!token) {
+      res.status(400).json({
+        status: "failed",
+        error: "Token can't be null"
+      });
+    }
+    const user = await prisma.verificationToken.findFirst({
       where: {
         token, // Replace with your unique identifier
       },
       select: {
-        idUser: true
+        idUser: true,
+        tokenExpire: true
       },
     });
-    if (!userId) {
-      res.send("User isn't found");
+    if (!user) {
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Verification Page</title>
+          </head>
+          <body>
+            <h1>Failed to verify your account. Your verification token can't be null!</h1>
+          </body>
+        </html>
+      `);
       return;
     }
-    userId = userId.idUser
+    if (user.tokenExpire < new Date()) {
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Verification Page</title>
+          </head>
+          <body>
+            <h1>Failed to verify your account. Your verification token has been expired, please ask new verification token</h1>
+          </body>
+        </html>
+      `);
+      return;
+    }
+    const iduser = user.idUser
     await prisma.traditionalUser.update({
       where: {
-        idUser: userId,
+        idUser: iduser,
       },
       data: {
         verifiedAt: new Date(),
       },
     })
-    res.send("verify user with token " + token + " the user id is " + userId);
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Verification Page</title>
+        </head>
+        <body>
+          <h1>Your account verified successfully, please login</h1>
+        </body>
+      </html>
+    `);
   } catch (error) {
     console.error("Failed verify the verification Token: ", error);
     throw error; // This will be caught by registerUser's try-catch

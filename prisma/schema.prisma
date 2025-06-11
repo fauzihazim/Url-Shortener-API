@@ -8,12 +8,12 @@ generator client {
 }
 
 model Url {
-  id            Int                           @id @default(autoincrement())
-  longUrl       String                        @db.Text
-  shortUrl      String                        @unique @db.VarChar(255)
-  createdAt     DateTime                      @default(now()) @db.Timestamp(6)
-  user          User?                         @relation(fields: [idUser], references: [id])
-  idUser        Int?
+  id                Int                           @id @default(autoincrement())
+  longUrl           String                        @db.Text
+  shortUrl          String                        @unique @db.VarChar(255)
+  createdAt         DateTime                      @default(now()) @db.Timestamp(6)
+  user              User?                         @relation(fields: [idUser], references: [id])
+  idUser            Int?
 }
 
 model User {
@@ -41,12 +41,11 @@ model OauthUser {
 }
 
 model VerificationToken {
-  id                  Int                     @id
+  id                  Int                     @id @default(autoincrement())
   idUser              Int
   traditionalUser     TraditionalUser         @relation(fields: [idUser], references: [idUser])
   token               String
-  tokenExpire         DateTime
-  isExpired           Boolean                 @default(false)
+  tokenExpire         DateTime                @db.Timestamp(6)
 }
 
 enum UserType {

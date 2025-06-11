@@ -11,6 +11,7 @@ import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js"
 import { error } from "console";
 import nodemailer from "nodemailer";
 import { nanoid } from "nanoid";
+import 'dotenv/config';
 
 const prisma = new PrismaClient();
 
@@ -124,7 +125,7 @@ export const registerUser = async (req, res) => {
     newUser.log();
     const saveUser = await newUser.save();
     console.log("Saving user id, ", saveUser);
-    await sendVerificationEmail(email);
+    await sendVerificationEmail(email, saveUser.user.id);
     return res.status(201).json({  
       status  : "success",
       message : "User registered successfully, please check verification in your Gmail"
@@ -153,7 +154,9 @@ const findingUser = async (email) => {
 
 
 
-const sendVerificationEmail = async (email) => {
+const sendVerificationEmail = async (email, userId) => {
+  console.log("The User Id ", userId);
+  
   const verificationToken = generateVerificationToken();
   console.log(`Send Verification to Email ${email}`);
   const verificationUrl = `http://localhost:3000/${verificationToken}`;
@@ -162,9 +165,9 @@ const sendVerificationEmail = async (email) => {
     auth: {
       type: "OAuth2",
       user: "betatest4590@gmail.com",
-      clientId: "551188331941-5gsumrfnf82vihfgvvpep6bj0m1vrkvq.apps.googleusercontent.com",
-      clientSecret: "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",
-      refreshToken: "1//04iZeIeZYryy-CgYIARAAGAQSNwF-L9IrjPjn2D8aUJ2VFs3hoWTC66MUb4an05dZnjzz76twm5IIVB7MmgeGhMJyAUESvBB3zR0",
+      clientId: process.env.GMAIL_CLIENT_ID,
+      clientSecret: process.env.GMAIL_CLIENT_SECRET,
+      refreshToken: process.env.GMAIL_REFRESH_TOKEN,
     },
   });
   // Configure the mailoptions object
@@ -182,6 +185,13 @@ const sendVerificationEmail = async (email) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
+    await prisma.verificationToken.create({
+      data: {
+        idUser: userId,
+        token: verificationToken,
+        tokenExpire: tokenExpired(),
+      }
+    }),
     console.log('Email sent:', info.response);
     return info;
   } catch (error) {
@@ -201,7 +211,37 @@ const generateVerificationToken = () => {
 }
 
 const tokenExpired = () => {
-  return Date.now() + 24 * 60 * 60 * 1000;
+  return new Date(Date.now() + 24 * 60 * 60 * 1000);;
+}
+
+export const askNewToken = async() => {
+  const email = req.params.id;
+  try {
+    // const deleteUsers = await prisma.user.deleteMany({
+    //   where: {
+    //     idUser: {
+    //       contains: 24,
+    //     },
+    //   },
+    // })
+    const findUser = await findingUser(data.email);
+    await prisma.$transaction([
+      prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
+      prisma.verificationToken.create({
+        data: {
+          idUser: findUser.id,
+          createdAt: generateVerificationToken(),
+          userType: tokenExpired(),
+        }
+      }),
+    ]);
+    const newVerificationToken = generateVerificationToken();
+    console.log(newVerificationToken);
+    return newVerificationToken
+  } catch (error) {
+    console.error("Failed generate new verification Token: ", error);
+    throw error; // This will be caught by registerUser's try-catch
+  }
 }
 
 // const login = async (req, res, email) => {

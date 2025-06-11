@@ -8,18 +8,18 @@ generator client {
 }
 
 model Url {
-  id            Int         @id @default(autoincrement())
-  longUrl       String      @db.Text
-  shortUrl      String      @unique @db.VarChar(255)
-  createdAt     DateTime    @default(now()) @db.Timestamp(6)
-  user          User?        @relation(fields: [idUser], references: [id])
+  id            Int                           @id @default(autoincrement())
+  longUrl       String                        @db.Text
+  shortUrl      String                        @unique @db.VarChar(255)
+  createdAt     DateTime                      @default(now()) @db.Timestamp(6)
+  user          User?                         @relation(fields: [idUser], references: [id])
   idUser        Int?
 }
 
 model User {
-  id                Int         @id @default(autoincrement())
-  email             String      @unique
-  createdAt         DateTime    @default(now()) @db.Timestamp(6)
+  id                Int                       @id @default(autoincrement())
+  email             String                    @unique
+  createdAt         DateTime                  @default(now()) @db.Timestamp(6)
   userType          UserType
   urls Url[]
   traditionalUser   TraditionalUser?
@@ -27,16 +27,26 @@ model User {
 }
 
 model TraditionalUser {
-  idUser      Int           @id
-  user        User          @relation(fields: [idUser], references: [id])
-  password    String
-  verifiedAt  DateTime?     @db.Timestamp(6)
+  idUser              Int                     @id
+  user                User                    @relation(fields: [idUser], references: [id])
+  password            String
+  verifiedAt          DateTime?               @db.Timestamp(6)
+  verificationToken   VerificationToken[]
 }
 
 model OauthUser {
-  idUser      Int             @id
-  user        User            @relation(fields: [idUser], references: [id])
-  isVerified  Boolean
+  idUser              Int                     @id
+  user                User                    @relation(fields: [idUser], references: [id])
+  isVerified          Boolean
+}
+
+model VerificationToken {
+  id                  Int                     @id
+  idUser              Int
+  traditionalUser     TraditionalUser         @relation(fields: [idUser], references: [idUser])
+  token               String
+  tokenExpire         DateTime
+  isExpired           Boolean                 @default(false)
 }
 
 enum UserType {

@@ -15,7 +15,7 @@ app.use(cors({
 }));
 
 // const app = express.Router();
-app.get('/:id', getLongUrl);
+// app.get('/:id', getLongUrl);
 app.post('/addUrl', addUrl);
 app.get('/getUrl/:id', getUrl);
 

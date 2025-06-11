@@ -46,11 +46,9 @@ export class OauthUser extends User {
     super(email, type, createdAt);
     this.isVerified = isVerified;
   }
-
   log() {
     console.log(`Email ${this.email}, created at ${this.createdAt}, isVerified ${this.isVerified}`);
   }
-
   async save() {
     console.log("Saving OauthUser ...");
     console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}, isVerified ${this.isVerified}`);
@@ -68,6 +66,38 @@ export class OauthUser extends User {
       }
     })
     return { user, oAuthUser }
+  }
+}
+
+export class TraditionalUser extends User {
+  constructor(email, password, type = UserType.TRADITIONAL, createdAt = new Date()) {
+    super(email, type, createdAt);
+    this.password = password;
+  }
+  log() {
+    console.log(`Email ${this.email}, password ${this.password}, created at ${this.createdAt}`);
+  }
+  async save() {
+    console.log("Saving Traditional ...");
+    console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}`);
+    const user = await prisma.user.create({
+      data: {
+        email: this.email,
+        createdAt: this.createdAt,
+        userType: this.userType,
+      }
+    });
+    const traditionalUser = await prisma.traditionalUser.create({
+      data: {
+        idUser: user.id,
+        password: this.password
+      }
+    })
+    return { user, traditionalUser }
+  }
+  async verified() {
+    console.log("Verifying....");
+    
   }
 }
 

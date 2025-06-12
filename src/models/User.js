@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -70,34 +71,43 @@ export class OauthUser extends User {
 }
 
 export class TraditionalUser extends User {
-  constructor(email, password, type = UserType.TRADITIONAL, createdAt = new Date()) {
+  constructor(email, password, token = null, type = UserType.TRADITIONAL, createdAt = new Date()) {
     super(email, type, createdAt);
     this.password = password;
+    this.token = token;
   }
   log() {
     console.log(`Email ${this.email}, password ${this.password}, created at ${this.createdAt}`);
   }
   async save() {
-    console.log("Saving Traditional ...");
-    console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}`);
-    const user = await prisma.user.create({
-      data: {
-        email: this.email,
-        createdAt: this.createdAt,
-        userType: this.userType,
-      }
-    });
-    const traditionalUser = await prisma.traditionalUser.create({
-      data: {
-        idUser: user.id,
-        password: this.password
-      }
-    })
-    return { user, traditionalUser }
-  }
-  async verified() {
-    console.log("Verifying....");
-    
+    try {
+      console.log("Saving Traditional ...");
+      console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}`);
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(this.password, salt);
+      console.log("Hashed Password, ", hashedPassword);
+      const result = await prisma.user.create({
+        data: {
+          email: this.email,
+          createdAt: this.createdAt,
+          userType: this.userType,
+          traditionalUser: {
+            create: { password: hashedPassword, verifiedAt: null }
+          },
+        },
+        include: {
+          traditionalUser: true, // Include all posts in the returned object
+        },
+      })
+      console.log("The result of join create, ", result);
+      const { traditionalUser, ...user } = result;
+      console.log("Traditional user, ", traditionalUser);
+      console.log("The user, ", user);
+      return { user, traditionalUser };
+    } catch (error) {
+      console.error(error);
+      return;
+    }
   }
 }
 

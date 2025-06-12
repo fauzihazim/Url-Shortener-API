@@ -3,13 +3,14 @@ import cookieParser from "cookie-parser";
 import 'dotenv/config';
 import bodyParser from 'body-parser';
 
-import { authGoogle, googleLogin, registerUser, userVerification } from '../controllers/auth.js';
+import { authGoogle, googleLogin, login, registerUser, userVerification } from '../controllers/auth.js';
 
 const app = express();
 app.use(cookieParser());
 app.use(bodyParser.json())
 app.post("/register", registerUser)
 app.get("/verify/:token", userVerification)
+app.post("/login", login)
 
 app.get('/auth/google', authGoogle)
 // Callback

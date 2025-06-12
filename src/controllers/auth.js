@@ -4,13 +4,14 @@ import {google} from 'googleapis';
 import crypto from 'crypto';
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
-import { email } from "zod/v4";
+import { email, success } from "zod/v4";
 // import {User} from "../interfaces/User"
 import {OauthUser, TraditionalUser, UserType} from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js";
 import { error } from "console";
 import nodemailer from "nodemailer";
 import { nanoid } from "nanoid";
+import { z } from 'zod';
 import 'dotenv/config';
 
 const prisma = new PrismaClient();
@@ -131,7 +132,7 @@ export const registerUser = async (req, res) => {
     await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
     return res.status(201).json({
       status  : "success",
-      message : "User registered successfully, please check verification in your Gmail"
+      message : "User registered successfully, please check verification in your email"
     });
     // return;
   } catch (error) {
@@ -205,7 +206,69 @@ export const askNewToken = async(req, res) => {
   const email = req.query.email;
   const password = req.query.password;
   console.log(`Ask new token ${email}, password ${password}`);
-  res.send(`Ask new token ${email}, password ${password}`);
+  try {
+    if (!email || !password) {
+      return res.status(400).json({
+        status: "failed",
+        error: 'Email and password cannot be null'
+      });
+    }
+    if (!z.string().email().safeParse(email).success) {
+      return res.status(400).json({
+        status: "failed",
+        error: 'Invalid email format'
+      });
+    }
+    const findUser = await prisma.user.findUnique({
+      where: {
+        email: email,
+        userType: UserType.TRADITIONAL
+      }, select: {
+        id: true,
+        traditionalUser: {
+          where: {
+            verifiedAt: null,
+          }, select: {
+            password: true
+          },
+        },
+      },
+    });
+    const { traditionalUser, ...user } = findUser;
+    console.log("Traditional user, ", traditionalUser, " user, ", user);
+    
+    if (!(user && traditionalUser)) {
+      return res.status(404).json({
+        status: "failed",
+        error: 'User did not find or you had registered your account!'
+      });
+    }
+    console.log("The password is, ", password, " the bcrypt ", traditionalUser, " compare ", await bcrypt.compare(password, traditionalUser.password));
+    
+    if (!await bcrypt.compare(password, traditionalUser.password)) {
+      return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
+    };
+    const verificationToken = generateVerificationToken();
+    await prisma.$transaction([
+      prisma.verificationToken.deleteMany({ where: { idUser: user.id } }),
+      prisma.verificationToken.create({
+        data: {
+          idUser: user.id,
+          token: verificationToken,
+          tokenExpire: tokenExpired(),
+        }
+      }),
+    ]);
+    console.log("The user, ", user);
+    console.log("Verification token, ", verificationToken);
+    await sendVerificationEmail(email, verificationToken);
+    return res.status(200).json({ status: "success", message : "Token has been sending to your email, please check your email"});
+  } catch (error) {
+    res.status(500).json({
+      status: "failed",
+      error: "Internal server error"
+    });
+  }
   // try {
   //   const findUser = await findingUser(data.email);
   //   if (condition) {

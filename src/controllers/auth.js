@@ -201,27 +201,33 @@ const tokenExpired = () => {
   return new Date(Date.now() + 24 * 60 * 60 * 1000);;
 }
 
-export const askNewToken = async() => {
-  const email = req.params.id;
-  try {
-    const findUser = await findingUser(data.email);
-    await prisma.$transaction([
-      prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
-      prisma.verificationToken.create({
-        data: {
-          idUser: userId,
-          token: verificationToken,
-          tokenExpire: tokenExpired(),
-        }
-      }),
-    ]);
-    const newVerificationToken = generateVerificationToken();
-    console.log(newVerificationToken);
-    return newVerificationToken
-  } catch (error) {
-    console.error("Failed generate new verification Token: ", error);
-    throw error; // This will be caught by registerUser's try-catch
-  }
+export const askNewToken = async(req, res) => {
+  const email = req.query.email;
+  const password = req.query.password;
+  console.log(`Ask new token ${email}, password ${password}`);
+  res.send(`Ask new token ${email}, password ${password}`);
+  // try {
+  //   const findUser = await findingUser(data.email);
+  //   if (condition) {
+      
+  //   }
+  //   await prisma.$transaction([
+  //     prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
+  //     prisma.verificationToken.create({
+  //       data: {
+  //         idUser: userId,
+  //         token: verificationToken,
+  //         tokenExpire: tokenExpired(),
+  //       }
+  //     }),
+  //   ]);
+  //   const newVerificationToken = generateVerificationToken();
+  //   console.log(newVerificationToken);
+  //   return newVerificationToken
+  // } catch (error) {
+  //   console.error("Failed generate new verification Token: ", error);
+  //   throw error; // This will be caught by registerUser's try-catch
+  // }
 }
 
 const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {

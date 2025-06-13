@@ -143,6 +143,7 @@ export const registerUser = async (req, res) => {
   }
 }
 
+
 const findingUser = async (email) => {
   return await prisma.user.findUnique({
     where: {
@@ -392,61 +393,38 @@ export const userVerification = async (req, res) => {
 }
 
 export const login = async (req, res) => {
+  console.log("Start login");
+  
   const { email, password } = req.body;
   try {
-      const user = await prisma.user.findUnique({
+      const findUser = await prisma.user.findUnique({
         where: {
-          email: email, // Replace with your unique identifier
-        },
-        select: {
+          email: email,
+          userType: UserType.TRADITIONAL
+        }, select: {
           id: true,
-          email: true,
-          userType: true,
+          traditionalUser: {
+            where: {
+              verifiedAt: {
+                not: null
+              }
+            }, select: {
+              password: true
+            },
+          },
         },
       });
-
-      const traditionalUser = await prisma.traditionalUser.findUnique({
-        where: {
-          idUser: user.id,
-        },
-        select: {
-          password: true,
-          verifiedAt: true,
-        }
-      })
-
-      console.log("User before re assign, ", user);
-      
-      // user = { ...user, password: traditionalUser.password, isVerified: traditionalUser.verifiedAt !== null };
-      user.password = traditionalUser.password;
-      user.isVerified = traditionalUser.verifiedAt !== null;
-      
-      console.log("User after re assign, ", user);
-
       if (!user) {
-          res.status(404).json({ status: "failed", message: "User didn't find" });
-          return;
+        res.status(404).json({ status: "failed", message: "User didn't find" });
+        return;
+      }
+
+      if (!traditionalUser) {
+        res.status(401).json({ status: "failed", message: "User hasn't registered" });
+        return;
       }
       res.status(200).json({ status: "success", message: "Login successfully" });
       return;
-      // if (user.userType === UserType.OAUTH) {
-      //   console.log("User type is Oauth");
-      //   res.status(401).json({ status: "failed", message: "Please login with google" });
-      //   return;
-      // }
-
-      // if (user.username && await bcrypt.compare(password, user.password)) {
-      //   const accessToken = generateAccessToken({ userId: user.userId, username: user.username, email: user.email });
-      //   // set cookies access and refresh token
-      //   res.cookie('accessToken', accessToken, { signed: true, maxAge: 1200000, httpOnly: true, domain: "localhost", secure: true });
-      //   const refreshToken = generateRefreshToken({ username: user.username, email: user.email });
-      //   await redisClient.set(user.username, refreshToken, {
-      //       EX: 24 * 60 * 60, // Set expiration time to 24 hours
-      //   });
-      //   res.status(200).json({ status: "success", message: "Login successfully", data: { accessToken, refreshToken } });
-      // } else {
-      //   res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
-      // }
   } catch (err) {
       res.status(500).json({ status: "failed", message: "Login error" });
   }

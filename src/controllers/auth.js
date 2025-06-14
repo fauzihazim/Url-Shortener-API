@@ -78,7 +78,7 @@ export const googleLogin = async (req, res) => {
       res.status(201).json({  
         status: "success",
         message: "User registered successfully",
-        data: {  
+        data: {
           accessToken: generateAccessToken({ sub: saveUser.user.id }),
           refreshToken: generateRefreshToken({ sub: saveUser.user.id })
         }
@@ -414,16 +414,22 @@ export const login = async (req, res) => {
           },
         },
       });
+      const { traditionalUser, ...user } = findUser;
       if (!user) {
         res.status(404).json({ status: "failed", message: "User didn't find" });
         return;
       }
-
       if (!traditionalUser) {
         res.status(401).json({ status: "failed", message: "User hasn't registered" });
         return;
       }
-      res.status(200).json({ status: "success", message: "Login successfully" });
+      res.status(200).json({ status: "success",
+        message: "Login successfully",
+        data: {
+          accessToken: generateAccessToken({ sub: user.id }),
+          refreshToken: generateRefreshToken({ sub: user.id })
+        }
+      });
       return;
   } catch (err) {
       res.status(500).json({ status: "failed", message: "Login error" });

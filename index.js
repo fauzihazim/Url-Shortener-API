@@ -16,9 +16,10 @@ import urlRoutes from './src/routes/urlRoutes.js';
 app.use(urlRoutes);
 
 import authRoutes from "./src/routes/authRoutes.js";
+import { authenticateAccessToken } from './src/middleware/authmiddleware.js';
 app.use(authRoutes);
 
-app.get('/', (req, res) => {
+app.get('/', authenticateAccessToken, (req, res) => {
     res.send('Hello from Node.js server!');
 });
 

@@ -16,9 +16,6 @@ import 'dotenv/config';
 
 const prisma = new PrismaClient();
 
-const ACCESS_TOKEN_SECRET = process.env.ACCESS_TOKEN_SECRET;
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET;
-
 const oauth2Client = new google.auth.OAuth2(
   process.env.YOUR_CLIENT_ID,
   process.env.YOUR_CLIENT_SECRET,
@@ -56,16 +53,7 @@ export const googleLogin = async (req, res) => {
         error: "failed to login with google account"
       });
     }
-    console.log("Data, ", data);
-    
-    console.log("Email, ", data.email);
-    
     const findUser = await findingUser(data.email);
-    console.log("Find User. ", findUser);
-    
-
-    // const newUser = new OauthUser(data.email, "OAUTH", data.verified_email);
-    
     if (!findUser) {
       const newUser = new OauthUser(
         data.email,                   // Required
@@ -85,7 +73,6 @@ export const googleLogin = async (req, res) => {
       });
       return;
     }
-    // login(req, res, data.email);
     res.status(200).json({  
       status: "success",
       message: "User login successfully",
@@ -94,7 +81,6 @@ export const googleLogin = async (req, res) => {
         refreshToken: generateRefreshToken({ sub: findUser.id })
       }
     });
-    // return;
   } catch (error) {
     res.status(500).json({
       status: "failed",
@@ -120,8 +106,8 @@ export const registerUser = async (req, res) => {
     }
     
     const newUser = new TraditionalUser(
-      email,                   // Required
-      password                 // Hardcoded for OAuth users
+      email,
+      password
     );
     newUser.log();
     const saveUser = await newUser.save();
@@ -134,7 +120,6 @@ export const registerUser = async (req, res) => {
       status  : "success",
       message : "User registered successfully, please check verification in your email"
     });
-    // return;
   } catch (error) {
     res.status(500).json({
       status: "failed",
@@ -142,7 +127,6 @@ export const registerUser = async (req, res) => {
     });
   }
 }
-
 
 const findingUser = async (email) => {
   return await prisma.user.findUnique({
@@ -157,8 +141,6 @@ const findingUser = async (email) => {
   });
 }
 
-
-
 const sendVerificationEmail = async (email, verificationToken) => {
   console.log(`Send Verification to Email ${email}`);
   const verificationUrl = `http://localhost:3000/verify/${verificationToken}`;
@@ -172,12 +154,9 @@ const sendVerificationEmail = async (email, verificationToken) => {
       refreshToken: process.env.GMAIL_REFRESH_TOKEN,
     },
   });
-  // Configure the mailoptions object
   const mailOptions = {
     from: 'beta4590@gmail.com',
     to: email,
-    // subject: 'Sending Email using Node.js',
-    // text: 'That was easy!'
     subject: 'Email Verification',
     html: `
       <p>Please click the following link to verify your email:</p>
@@ -270,28 +249,6 @@ export const askNewToken = async(req, res) => {
       error: "Internal server error"
     });
   }
-  // try {
-  //   const findUser = await findingUser(data.email);
-  //   if (condition) {
-      
-  //   }
-  //   await prisma.$transaction([
-  //     prisma.verificationToken.deleteMany({ where: { idUser: findUser.id } }),
-  //     prisma.verificationToken.create({
-  //       data: {
-  //         idUser: userId,
-  //         token: verificationToken,
-  //         tokenExpire: tokenExpired(),
-  //       }
-  //     }),
-  //   ]);
-  //   const newVerificationToken = generateVerificationToken();
-  //   console.log(newVerificationToken);
-  //   return newVerificationToken
-  // } catch (error) {
-  //   console.error("Failed generate new verification Token: ", error);
-  //   throw error; // This will be caught by registerUser's try-catch
-  // }
 }
 
 const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
@@ -393,8 +350,6 @@ export const userVerification = async (req, res) => {
 }
 
 export const login = async (req, res) => {
-  console.log("Start login");
-  
   const { email, password } = req.body;
   try {
       const findUser = await prisma.user.findUnique({
@@ -423,6 +378,9 @@ export const login = async (req, res) => {
         res.status(401).json({ status: "failed", message: "User hasn't registered" });
         return;
       }
+      if (!await bcrypt.compare(password, traditionalUser.password)) {
+        return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
+      };
       res.status(200).json({ status: "success",
         message: "Login successfully",
         data: {

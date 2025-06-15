@@ -8,8 +8,110 @@ generator client {
 }
 
 model Url {
-  id            Int         @id @default(autoincrement())
-  longUrl       String      @db.Text
-  shortUrl      String      @unique @db.VarChar(255)
-  createdAt     DateTime    @default(now()) @db.Timestamp(6)
+  id                Int                           @id @default(autoincrement())
+  longUrl           String                        @db.Text
+  shortUrl          String                        @unique @db.VarChar(255)
+  createdAt         DateTime                      @default(now()) @db.Timestamp(6)
+  user              User?                         @relation(fields: [idUser], references: [id])
+  idUser            Int?
 }
+
+model User {
+  id                Int                       @id @default(autoincrement())
+  email             String                    @unique
+  createdAt         DateTime                  @default(now()) @db.Timestamp(6)
+  userType          UserType
+  urls Url[]
+  traditionalUser   TraditionalUser?
+  oauthUser         OauthUser?
+}
+
+model TraditionalUser {
+  idUser              Int                     @id
+  user                User                    @relation(fields: [idUser], references: [id])
+  password            String
+  verifiedAt          DateTime?               @db.Timestamp(6)
+  verificationToken   VerificationToken[]
+}
+
+model OauthUser {
+  idUser              Int                     @id
+  user                User                    @relation(fields: [idUser], references: [id])
+  isVerified          Boolean
+}
+
+model VerificationToken {
+  id                  Int                     @id @default(autoincrement())
+  idUser              Int
+  traditionalUser     TraditionalUser         @relation(fields: [idUser], references: [idUser])
+  token               String
+  tokenExpire         DateTime                @db.Timestamp(6)
+}
+
+enum UserType {
+  TRADITIONAL
+  OAUTH
+}
+
+
+// CREATE TABLE users (
+//   id SERIAL PRIMARY KEY,
+//   email VARCHAR(255) UNIQUE,
+//   name VARCHAR(255),
+//   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+//   user_type ENUM('traditional', 'oauth') NOT NULL
+// );
+
+// -- Traditional auth table
+// CREATE TABLE traditional_auth (
+//   user_id INT PRIMARY KEY REFERENCES users(id),
+//   username VARCHAR(255) UNIQUE,
+//   password_hash TEXT,
+//   salt TEXT
+// );
+
+// -- OAuth auth table
+// CREATE TABLE oauth_auth (
+//   user_id INT PRIMARY KEY REFERENCES users(id),
+//   provider VARCHAR(50) NOT NULL,
+//   provider_id VARCHAR(255) NOT NULL,
+//   access_token TEXT,
+//   refresh_token TEXT,
+//   token_expiry TIMESTAMP,
+//   UNIQUE(provider, provider_id)
+// );
+
+// model User {
+//   id         Int            @id @default(autoincrement())
+//   email      String         @unique
+//   name       String?
+//   created_at DateTime       @default(now()) @db.Timestamp(6)
+//   user_type  UserType
+//   traditionalAuth TraditionalAuth?
+//   oauthAuth      OAuthAuth?
+// }
+
+// model TraditionalAuth {
+//   user_id       Int     @id
+//   user          User    @relation(fields: [user_id], references: [id])
+//   username      String  @unique
+//   password_hash String
+//   salt          String
+// }
+
+// model OAuthAuth {
+//   user_id       Int      @id
+//   user          User     @relation(fields: [user_id], references: [id])
+//   provider      String
+//   provider_id   String
+//   access_token  String?
+//   refresh_token String?
+//   token_expiry  DateTime? @db.Timestamp(6)
+  
+//   @@unique([provider, provider_id])
+// }
+
+// enum UserType {
+//   TRADITIONAL
+//   OAUTH
+// }

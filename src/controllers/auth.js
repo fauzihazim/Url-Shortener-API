@@ -1,11 +1,9 @@
-// import express from 'express';
 import { PrismaClient, Prisma } from "@prisma/client";
 import {google} from 'googleapis';
 import crypto from 'crypto';
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
 import { email, success } from "zod/v4";
-// import {User} from "../interfaces/User"
 import {OauthUser, TraditionalUser, UserType} from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js";
 import { error } from "console";
@@ -56,13 +54,12 @@ export const googleLogin = async (req, res) => {
     const findUser = await findingUser(data.email);
     if (!findUser) {
       const newUser = new OauthUser(
-        data.email,                   // Required
-        UserType.OAUTH,               // Hardcoded for OAuth users
-        data.verified_email           // From request
+        data.email,
+        UserType.OAUTH,
+        data.verified_email
       );
       newUser.log();
       const saveUser = await newUser.save();
-      console.log("Saving user id, ", saveUser.user.id);
       res.status(201).json({  
         status: "success",
         message: "User registered successfully",
@@ -92,11 +89,8 @@ export const googleLogin = async (req, res) => {
 export const registerUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const timeToTokenExpired = tokenExpired();
-    console.log(`Email ${email}, password ${password}`);
+    validateEmailAndPassword.parse({email, password});
     const findUser = await findingUser(email);
-    console.log("Find User, ", findUser);
-    
     if (findUser) {
       res.status(409).json({  
         status: "failed",
@@ -111,16 +105,21 @@ export const registerUser = async (req, res) => {
     );
     newUser.log();
     const saveUser = await newUser.save();
-    console.log("Saving user id, ", saveUser);
     const verificationToken = generateVerificationToken();
     await sendVerificationEmail(email, verificationToken);
-    console.log("Verification token: ", verificationToken);
     await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
     return res.status(201).json({
       status  : "success",
       message : "User registered successfully, please check verification in your email"
     });
   } catch (error) {
+    if(error instanceof z.ZodError){
+      const err = error.issues;
+      return res.status(500).json({
+        status: "failed",
+        error: err[0].message
+      });
+    };
     res.status(500).json({
       status: "failed",
       error: "Internal server error"
@@ -128,10 +127,15 @@ export const registerUser = async (req, res) => {
   }
 }
 
+const validateEmailAndPassword = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 const findingUser = async (email) => {
   return await prisma.user.findUnique({
     where: {
-      email: email, // Replace with your unique identifier
+      email: email,
     },
     select: {
       id: true,
@@ -142,7 +146,6 @@ const findingUser = async (email) => {
 }
 
 const sendVerificationEmail = async (email, verificationToken) => {
-  console.log(`Send Verification to Email ${email}`);
   const verificationUrl = `http://localhost:3000/verify/${verificationToken}`;
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -166,16 +169,14 @@ const sendVerificationEmail = async (email, verificationToken) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.response);
     return info;
   } catch (error) {
-    console.error('Email sending error:', error);
-    throw error; // This will be caught by registerUser's try-catch
+    throw error;
   }
 }
 
 const generateVerificationToken = () => {
-  return nanoid(32); // 32-character URL-friendly ID
+  return nanoid(32);
 }
 
 const tokenExpired = () => {
@@ -185,7 +186,6 @@ const tokenExpired = () => {
 export const askNewToken = async(req, res) => {
   const email = req.query.email;
   const password = req.query.password;
-  console.log(`Ask new token ${email}, password ${password}`);
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -215,16 +215,12 @@ export const askNewToken = async(req, res) => {
       },
     });
     const { traditionalUser, ...user } = findUser;
-    console.log("Traditional user, ", traditionalUser, " user, ", user);
-    
     if (!(user && traditionalUser)) {
       return res.status(404).json({
         status: "failed",
         error: 'User did not find or you had registered your account!'
       });
     }
-    console.log("The password is, ", password, " the bcrypt ", traditionalUser, " compare ", await bcrypt.compare(password, traditionalUser.password));
-    
     if (!await bcrypt.compare(password, traditionalUser.password)) {
       return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
     };
@@ -239,8 +235,6 @@ export const askNewToken = async(req, res) => {
         }
       }),
     ]);
-    console.log("The user, ", user);
-    console.log("Verification token, ", verificationToken);
     await sendVerificationEmail(email, verificationToken);
     return res.status(200).json({ status: "success", message : "Token has been sending to your email, please check your email"});
   } catch (error) {
@@ -264,14 +258,12 @@ const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
       }),
     ]);
   } catch (error) {
-    console.error("Failed generate new verification Token: ", error);
-    throw error; // This will be caught by registerUser's try-catch
+    throw error;
   }
 }
 
 export const userVerification = async (req, res) => {
   const token = req.params.token;
-  console.log("verify user with token ", token);
   try {
     if (!token) {
       res.status(400).json({
@@ -281,7 +273,7 @@ export const userVerification = async (req, res) => {
     }
     const user = await prisma.verificationToken.findFirst({
       where: {
-        token, // Replace with your unique identifier
+        token,
       },
       select: {
         idUser: true,
@@ -344,52 +336,59 @@ export const userVerification = async (req, res) => {
       </html>
     `);
   } catch (error) {
-    console.error("Failed verify the verification Token: ", error);
-    throw error; // This will be caught by registerUser's try-catch
+    throw error;
   }
 }
 
 export const login = async (req, res) => {
-  const { email, password } = req.body;
   try {
-      const findUser = await prisma.user.findUnique({
-        where: {
-          email: email,
-          userType: UserType.TRADITIONAL
-        }, select: {
-          id: true,
-          traditionalUser: {
-            where: {
-              verifiedAt: {
-                not: null
-              }
-            }, select: {
-              password: true
-            },
+    const { email, password } = req.body;
+    validateEmailAndPassword.parse({email, password});
+    const findUser = await prisma.user.findUnique({
+      where: {
+        email: email,
+        userType: UserType.TRADITIONAL
+      }, select: {
+        id: true,
+        traditionalUser: {
+          where: {
+            verifiedAt: {
+              not: null
+            }
+          }, select: {
+            password: true
           },
         },
-      });
-      const { traditionalUser, ...user } = findUser;
-      if (!user) {
-        res.status(404).json({ status: "failed", message: "User didn't find" });
-        return;
-      }
-      if (!traditionalUser) {
-        res.status(401).json({ status: "failed", message: "User hasn't registered" });
-        return;
-      }
-      if (!await bcrypt.compare(password, traditionalUser.password)) {
-        return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
-      };
-      res.status(200).json({ status: "success",
-        message: "Login successfully",
-        data: {
-          accessToken: generateAccessToken({ sub: user.id }),
-          refreshToken: generateRefreshToken({ sub: user.id })
-        }
-      });
+      },
+    });
+    const { traditionalUser, ...user } = findUser;
+    if (!user) {
+      res.status(404).json({ status: "failed", message: "User didn't find" });
       return;
-  } catch (err) {
-      res.status(500).json({ status: "failed", message: "Login error" });
+    }
+    if (!traditionalUser) {
+      res.status(401).json({ status: "failed", message: "User hasn't registered" });
+      return;
+    }
+    if (!await bcrypt.compare(password, traditionalUser.password)) {
+      return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
+    };
+    res.status(200).json({ status: "success",
+      message: "Login successfully",
+      data: {
+        accessToken: generateAccessToken({ sub: user.id }),
+        refreshToken: generateRefreshToken({ sub: user.id })
+      }
+    });
+    return;
+  } catch (error) {
+    if(error instanceof z.ZodError){
+      const err = error.issues;
+      return res.status(500).json({
+        status: "failed",
+        error: err[0].message
+      });
+    };
+    res.status(500).json({ status: "failed", message: "Login error" });
   }
 }

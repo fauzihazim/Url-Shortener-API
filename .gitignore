@@ -1,5 +1,2 @@
 node_modules/
 .env
-client secret Oauth.json
-client_secret*.json
-client secret Gmail.json

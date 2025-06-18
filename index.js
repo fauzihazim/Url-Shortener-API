@@ -1,4 +1,5 @@
 import express from 'express';
+import morgan from 'morgan';
 // const app = express();
 
 import cors from "cors";
@@ -10,7 +11,22 @@ const corsOptions ={
     credentials:true,            //access-control-allow-credentials:true
     optionSuccessStatus:200
 }
-app.use(cors(corsOptions));
+// app.use((req, res, next) => {
+//   const originalJson = res.json;
+//   res.json = function (data) {
+//     res.body = data; // Store response body for Morgan
+//     originalJson.call(this, data);
+//   };
+//   next();
+// });
+// app.use(cors(corsOptions));
+
+// morgan.token('message', (req, res) => {
+//   return res.body?.message || res.body?.error || "";
+// });
+
+// app.use(morgan(':status | :message'));
+// :method :url :status :res[content-length] - :response-time ms
 
 import urlRoutes from './src/routes/urlRoutes.js';
 app.use(urlRoutes);

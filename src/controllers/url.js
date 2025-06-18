@@ -68,6 +68,7 @@ export const getUrl = async (req, res) => {
 }
 
 export const addUrl = async (req, res) => {
+    req.user = { id: "user123" };
     try {
         console.log("Ini Req body", req.body);
         
@@ -94,7 +95,7 @@ export const addUrl = async (req, res) => {
         });
         res.status(201).json({
             status: "success",
-            shortUrl: `${baseUrl}${updatedUrl.shortUrl}`,
+            shortUrl: `${baseUrl}/d/${updatedUrl.shortUrl}`,
         });
         
     } catch (error) {

@@ -52,30 +52,26 @@ export const googleLogin = async (req, res) => {
       });
     }
     const findUser = await findingUser(data.email);
-    if (!findUser) {
-      const newUser = new OauthUser(
-        data.email,
-        UserType.OAUTH,
-        data.verified_email
-      );
-      newUser.log();
-      const saveUser = await newUser.save();
-      res.status(201).json({  
-        status: "success",
-        message: "User registered successfully",
-        data: {
-          accessToken: generateAccessToken({ sub: saveUser.user.id }),
-          refreshToken: generateRefreshToken({ sub: saveUser.user.id })
-        }
+    if (findUser) {
+      res.status(409).json({  // Or 422/400
+        status: "failed",
+        error: "Email has been used"
       });
       return;
-    }
-    res.status(200).json({  
+    };
+    const newUser = new OauthUser(
+      data.email,
+      UserType.OAUTH,
+      data.verified_email
+    );
+    // newUser.log();
+    const saveUser = await newUser.save();
+    res.status(201).json({  
       status: "success",
-      message: "User login successfully",
-      data: {  
-        accessToken: generateAccessToken({ sub: findUser.id }),
-        refreshToken: generateRefreshToken({ sub: findUser.id })
+      message: "User registered successfully",
+      data: {
+        accessToken: generateAccessToken({ sub: saveUser.user.id }),
+        refreshToken: generateRefreshToken({ sub: saveUser.user.id })
       }
     });
   } catch (error) {
@@ -92,6 +88,7 @@ export const registerUser = async (req, res) => {
     validateEmailAndPassword.parse({email, password});
     const findUser = await findingUser(email);
     if (findUser) {
+      res.locals.userId = findUser.id;
       res.status(409).json({  
         status: "failed",
         error: "Email has been used"
@@ -103,15 +100,27 @@ export const registerUser = async (req, res) => {
       email,
       password
     );
-    newUser.log();
+    // newUser.log();
     const saveUser = await newUser.save();
+    // console.log("Save user is ", saveUser);
+    
+    res.locals.userId = saveUser.user.id;
+    // console.log("Save user id ", saveUser.user.id);
+    
     const verificationToken = generateVerificationToken();
+    // console.log("Here 1");
+    
     await sendVerificationEmail(email, verificationToken);
+    // console.log("Here 2");
+    
     await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
-    return res.status(201).json({
+    // console.log("Here 3");
+    
+    res.status(201).json({
       status  : "success",
       message : "User registered successfully, please check verification in your email"
     });
+    return;
   } catch (error) {
     if(error instanceof z.ZodError){
       const err = error.issues;
@@ -146,6 +155,8 @@ const findingUser = async (email) => {
 }
 
 const sendVerificationEmail = async (email, verificationToken) => {
+  // console.log("Verifying Email");
+  
   const verificationUrl = `http://localhost:3000/verify/${verificationToken}`;
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -215,6 +226,7 @@ export const askNewToken = async(req, res) => {
       },
     });
     const { traditionalUser, ...user } = findUser;
+    res.locals.userId = user.id;
     if (!(user && traditionalUser)) {
       return res.status(404).json({
         status: "failed",
@@ -222,7 +234,10 @@ export const askNewToken = async(req, res) => {
       });
     }
     if (!await bcrypt.compare(password, traditionalUser.password)) {
-      return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
+      return res.status(401).json({
+        status: "failed",
+        error: "Invalid Username or Password"
+      });
     };
     const verificationToken = generateVerificationToken();
     await prisma.$transaction([
@@ -246,6 +261,8 @@ export const askNewToken = async(req, res) => {
 }
 
 const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
+  // console.log("Save and delete");
+  
   try {
     await prisma.$transaction([
       prisma.verificationToken.deleteMany({ where: { idUser: userId } }),
@@ -266,10 +283,18 @@ export const userVerification = async (req, res) => {
   const token = req.params.token;
   try {
     if (!token) {
-      res.status(400).json({
-        status: "failed",
-        error: "Token can't be null"
-      });
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Verification Page</title>
+          </head>
+          <body>
+            <h1>Failed to verify your account. Your verification token can't be null!</h1>
+          </body>
+        </html>
+      `);
+      return;
     }
     const user = await prisma.verificationToken.findFirst({
       where: {
@@ -288,7 +313,7 @@ export const userVerification = async (req, res) => {
             <title>Verification Page</title>
           </head>
           <body>
-            <h1>Failed to verify your account. Your verification token can't be null!</h1>
+            <h1>Failed to verify your account. User didn't find!</h1>
           </body>
         </html>
       `);
@@ -306,6 +331,7 @@ export const userVerification = async (req, res) => {
           </body>
         </html>
       `);
+      res.locals.userId = user.idUser;
       return;
     }
     const iduser = user.idUser
@@ -323,7 +349,19 @@ export const userVerification = async (req, res) => {
           idUser: iduser
         }
       }),
-    ])
+    ]);
+    // res.status(200).send(`
+    //   <!DOCTYPE html>
+    //   <html>
+    //     <head>
+    //       <title>Verification Page</title>
+    //     </head>
+    //     <body>
+    //       <h1>Your account verified successfully, please login</h1>
+    //     </body>
+    //   </html>
+    // `);
+    res.locals.userId = iduser;
     res.status(200).send(`
       <!DOCTYPE html>
       <html>
@@ -336,7 +374,10 @@ export const userVerification = async (req, res) => {
       </html>
     `);
   } catch (error) {
-    throw error;
+    res.status(500).json({
+      status: "failed",
+      error: "Internal server error"
+    });
   }
 }
 
@@ -362,16 +403,26 @@ export const login = async (req, res) => {
       },
     });
     const { traditionalUser, ...user } = findUser;
+    res.locals.userId = user.id;
     if (!user) {
-      res.status(404).json({ status: "failed", message: "User didn't find" });
+      res.status(404).json({
+        status: "failed",
+        error: "User didn't find"
+      });
       return;
     }
     if (!traditionalUser) {
-      res.status(401).json({ status: "failed", message: "User hasn't registered" });
+      res.status(401).json({
+        status: "failed",
+        error: "User hasn't registered"
+      });
       return;
     }
     if (!await bcrypt.compare(password, traditionalUser.password)) {
-      return res.status(401).json({ status: "failed", message: "Invalid Username or Password" });
+      return res.status(401).json({
+        status: "failed",
+        error: "Invalid Username or Password"
+      });
     };
     res.status(200).json({ status: "success",
       message: "Login successfully",
@@ -389,6 +440,9 @@ export const login = async (req, res) => {
         error: err[0].message
       });
     };
-    res.status(500).json({ status: "failed", message: "Login error" });
+    res.status(500).json({
+      status: "failed",
+      error: "Login error"
+    });
   }
 }

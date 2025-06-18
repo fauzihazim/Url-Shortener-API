@@ -47,12 +47,7 @@ export class OauthUser extends User {
     super(email, type, createdAt);
     this.isVerified = isVerified;
   }
-  log() {
-    console.log(`Email ${this.email}, created at ${this.createdAt}, isVerified ${this.isVerified}`);
-  }
   async save() {
-    console.log("Saving OauthUser ...");
-    console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}, isVerified ${this.isVerified}`);
     const user = await prisma.user.create({
       data: {
         email: this.email,
@@ -76,16 +71,10 @@ export class TraditionalUser extends User {
     this.password = password;
     this.token = token;
   }
-  log() {
-    console.log(`Email ${this.email}, password ${this.password}, created at ${this.createdAt}`);
-  }
   async save() {
     try {
-      console.log("Saving Traditional ...");
-      console.log(`Email ${this.email}, created at ${this.createdAt}, User Type ${this.userType}`);
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(this.password, salt);
-      console.log("Hashed Password, ", hashedPassword);
       const result = await prisma.user.create({
         data: {
           email: this.email,
@@ -99,10 +88,7 @@ export class TraditionalUser extends User {
           traditionalUser: true, // Include all posts in the returned object
         },
       })
-      console.log("The result of join create, ", result);
       const { traditionalUser, ...user } = result;
-      console.log("Traditional user, ", traditionalUser);
-      console.log("The user, ", user);
       return { user, traditionalUser };
     } catch (error) {
       console.error(error);

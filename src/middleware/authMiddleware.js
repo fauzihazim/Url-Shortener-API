@@ -31,16 +31,20 @@ import 'dotenv/config';
 export const authenticateAccessToken = (req, res, next) => {
   // Get token from Authorization header
   const authHeader = req.headers['authorization'];
-  console.log("Auth access token, ", authHeader);
-  
-  const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
-  console.log("token, ", token);
-  
-  
-  if (!token) return res.sendStatus(401); // Unauthorized
-
+  const token = authHeader && authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({
+      status: "failed",
+      error: "Access token can't be null"
+    });
+  };
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403); // Forbidden (invalid token)
+    if (err) {
+      return res.status(403).json({
+        status: "failed",
+        error: "Invalid token"
+      });
+    }
     req.user = user; // Attach user data to request
     next(); // Proceed to the next middleware/route handler
   });

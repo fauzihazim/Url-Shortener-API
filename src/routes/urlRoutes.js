@@ -1,22 +1,26 @@
 import express from "express";
 import { addUrl, getLongUrl, getUrl } from "../controllers/url.js";
 import cors from "cors";
+import morgan from 'morgan';
+import { logger } from "../middleware/loggerMiddleware.js";
+import { messageToken, userIdToken } from "../middleware/morganTokens.js";
+import { addUrlAuth } from "../middleware/authmiddleware.js";
 
 const app = express();
 app.use(express.json());
-// Enable CORS for all routes
 app.use(cors());
-
-// Or configure specific origins
 app.use(cors({
-  origin: 'http://localhost:3001', // Your Vite frontend URL
+  origin: 'http://localhost:3001',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true // If using cookies/auth
+  credentials: true
 }));
 
-// const app = express.Router();
+app.use(logger);
+morgan.token('message', messageToken);
+morgan.token('userId', userIdToken);
+
 app.get('/d/:id', getLongUrl);
-app.post('/addUrl', addUrl);
+app.post('/addUrl', morgan(':status | :url | :message | :userId'), addUrlAuth, addUrl);
 app.get('/getUrl/:id', getUrl);
 
 export default app;

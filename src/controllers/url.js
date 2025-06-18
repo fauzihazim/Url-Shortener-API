@@ -1,10 +1,8 @@
-// import express from 'express';
 import { PrismaClient, Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { baseUrl } from "../../script.js";
 import { z } from 'zod';
 
-// const app = express();
 const prisma = new PrismaClient();
 
 export const getLongUrl = async (req, res) => {
@@ -15,7 +13,7 @@ export const getLongUrl = async (req, res) => {
                 shortUrl: shortUrl
             },
             select: {
-                longUrl: true, // Only fetch this column
+                longUrl: true,
             },
         })
         if (longUrl === null) {
@@ -43,7 +41,7 @@ export const getUrl = async (req, res) => {
                 shortUrl: shortUrl
             },
             select: {
-                longUrl: true, // Only fetch this column
+                longUrl: true,
             },
         })
         if (longUrl === null) {
@@ -68,14 +66,8 @@ export const getUrl = async (req, res) => {
 }
 
 export const addUrl = async (req, res) => {
-    req.user = { id: "user123" };
     try {
-        console.log("Ini Req body", req.body);
-        
         const { longUrl } = req.body;
-        console.log("Long URL is ", longUrl);
-        
-        // Validation
         if (!z.string().url().safeParse(longUrl).success) {
             return res.status(400).json({
                 status: "failed",
@@ -95,8 +87,10 @@ export const addUrl = async (req, res) => {
         });
         res.status(201).json({
             status: "success",
+            message: "Url added successfully",
+        data: {
             shortUrl: `${baseUrl}/d/${updatedUrl.shortUrl}`,
-        });
+        }});
         
     } catch (error) {
         res.status(500).json({
@@ -108,9 +102,7 @@ export const addUrl = async (req, res) => {
 
 const nowDatetime = () => {
     const date = new Date();
-    // Convert to Jakarta Time
     const now = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    // Convert to ISO-8601 DateTime
     const isoNow = now.toISOString();
     return isoNow;
 }

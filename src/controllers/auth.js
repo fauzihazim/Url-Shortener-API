@@ -6,7 +6,6 @@ import bcrypt from 'bcryptjs';
 import { email, success } from "zod/v4";
 import {OauthUser, TraditionalUser, UserType} from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js";
-import { error } from "console";
 import nodemailer from "nodemailer";
 import { nanoid } from "nanoid";
 import { z } from 'zod';
@@ -53,7 +52,7 @@ export const googleLogin = async (req, res) => {
     }
     const findUser = await findingUser(data.email);
     if (findUser) {
-      res.status(409).json({  // Or 422/400
+      res.status(409).json({
         status: "failed",
         error: "Email has been used"
       });
@@ -64,7 +63,6 @@ export const googleLogin = async (req, res) => {
       UserType.OAUTH,
       data.verified_email
     );
-    // newUser.log();
     const saveUser = await newUser.save();
     res.status(201).json({  
       status: "success",
@@ -100,22 +98,11 @@ export const registerUser = async (req, res) => {
       email,
       password
     );
-    // newUser.log();
     const saveUser = await newUser.save();
-    // console.log("Save user is ", saveUser);
-    
     res.locals.userId = saveUser.user.id;
-    // console.log("Save user id ", saveUser.user.id);
-    
     const verificationToken = generateVerificationToken();
-    // console.log("Here 1");
-    
     await sendVerificationEmail(email, verificationToken);
-    // console.log("Here 2");
-    
     await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
-    // console.log("Here 3");
-    
     res.status(201).json({
       status  : "success",
       message : "User registered successfully, please check verification in your email"
@@ -155,8 +142,6 @@ const findingUser = async (email) => {
 }
 
 const sendVerificationEmail = async (email, verificationToken) => {
-  // console.log("Verifying Email");
-  
   const verificationUrl = `http://localhost:3000/verify/${verificationToken}`;
   const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -197,8 +182,6 @@ const tokenExpired = () => {
 export const askNewToken = async(req, res) => {
   const email = req.query.email;
   const password = req.query.password;
-  console.log(email, password);
-  
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -212,8 +195,6 @@ export const askNewToken = async(req, res) => {
         error: 'Invalid email format'
       });
     }
-    console.log("1");
-    
     const findUser = await prisma.user.findUnique({
       where: {
         email: email,
@@ -229,13 +210,7 @@ export const askNewToken = async(req, res) => {
         },
       },
     });
-    console.log("2");
-    console.log("User, ", findUser);
-    
-    
     if (!findUser) {
-      console.log("Go this");
-      
       return res.status(404).json({
         status: "failed",
         error: 'Did not find your account!'
@@ -244,11 +219,6 @@ export const askNewToken = async(req, res) => {
     res.locals.userId = findUser.id;
     
     const { traditionalUser, ...user } = findUser;
-    console.log("3");
-    
-    
-    console.log("Traditional, ", traditionalUser, " user, ", user);
-    
     if (!traditionalUser) {
       return res.status(404).json({
         status: "failed",
@@ -283,8 +253,6 @@ export const askNewToken = async(req, res) => {
 }
 
 const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
-  // console.log("Save and delete");
-  
   try {
     await prisma.$transaction([
       prisma.verificationToken.deleteMany({ where: { idUser: userId } }),
@@ -372,17 +340,6 @@ export const userVerification = async (req, res) => {
         }
       }),
     ]);
-    // res.status(200).send(`
-    //   <!DOCTYPE html>
-    //   <html>
-    //     <head>
-    //       <title>Verification Page</title>
-    //     </head>
-    //     <body>
-    //       <h1>Your account verified successfully, please login</h1>
-    //     </body>
-    //   </html>
-    // `);
     res.locals.userId = iduser;
     res.status(200).send(`
       <!DOCTYPE html>

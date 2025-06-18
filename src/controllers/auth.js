@@ -197,6 +197,8 @@ const tokenExpired = () => {
 export const askNewToken = async(req, res) => {
   const email = req.query.email;
   const password = req.query.password;
+  console.log(email, password);
+  
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -210,6 +212,8 @@ export const askNewToken = async(req, res) => {
         error: 'Invalid email format'
       });
     }
+    console.log("1");
+    
     const findUser = await prisma.user.findUnique({
       where: {
         email: email,
@@ -225,12 +229,30 @@ export const askNewToken = async(req, res) => {
         },
       },
     });
-    const { traditionalUser, ...user } = findUser;
-    res.locals.userId = user.id;
-    if (!(user && traditionalUser)) {
+    console.log("2");
+    console.log("User, ", findUser);
+    
+    
+    if (!findUser) {
+      console.log("Go this");
+      
       return res.status(404).json({
         status: "failed",
-        error: 'User did not find or you had registered your account!'
+        error: 'Did not find your account!'
+      });
+    };
+    res.locals.userId = findUser.id;
+    
+    const { traditionalUser, ...user } = findUser;
+    console.log("3");
+    
+    
+    console.log("Traditional, ", traditionalUser, " user, ", user);
+    
+    if (!traditionalUser) {
+      return res.status(404).json({
+        status: "failed",
+        error: 'You had registered your account!'
       });
     }
     if (!await bcrypt.compare(password, traditionalUser.password)) {

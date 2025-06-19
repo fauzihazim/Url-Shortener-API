@@ -1,10 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
-// import { nowDatetime } from "../utils/nowDatetimeUtils.js";
 
 const prisma = new PrismaClient();
-// const dateTimeNow = nowDatetime();
-
 export const UserType = Object.freeze({
   OAUTH: 'OAUTH',
   TRADITIONAL: 'TRADITIONAL'
@@ -20,28 +17,6 @@ class User {
     }
     this.userType = type;
   }
-
-  // log() {
-  //   console.log(`Email ${this.email}, created at ${this.createdAt}`);
-  // }
-
-  // async save() {
-  //   // const newUser = async() => {
-  //   //   return await prisma.user.create({
-  //   //     data: {
-  //   //         email: "this.emails",
-  //   //         password: "12"
-  //   //     }
-  //   //   })
-  //   // }
-  //   // console.log("Created, ", await newUser());
-  //   return await prisma.user.create({
-  //     data: {
-  //         email: this.email,
-  //         password: "12"
-  //     }
-  //   })
-  // }
 }
 
 export class OauthUser extends User {
@@ -75,7 +50,6 @@ export class TraditionalUser extends User {
   }
   async save() {
     try {
-      // res.locals.dateTimeNow = this.createdAt;
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(this.password, salt);
       const result = await prisma.user.create({
@@ -88,7 +62,7 @@ export class TraditionalUser extends User {
           },
         },
         include: {
-          traditionalUser: true, // Include all posts in the returned object
+          traditionalUser: true,
         },
       })
       const { traditionalUser, ...user } = result;
@@ -99,27 +73,3 @@ export class TraditionalUser extends User {
     }
   }
 }
-
-// class Car {
-//   constructor(brand) {
-//     this.carname = brand;
-//   }
-//   present() {
-//     return 'I have a ' + this.carname;
-//   }
-// }
-
-// class Model extends Car {
-//   constructor(brand, mod) {
-//     super(brand);
-//     this.model = mod;
-//   }
-//   show() {
-//     return this.present() + ', it is a ' + this.model;
-//   }
-// }
-
-// let myCar = new Model("Ford", "Mustang");
-// document.getElementById("demo").innerHTML = myCar.show();
-
-// module.exports = User;

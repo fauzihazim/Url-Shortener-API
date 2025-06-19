@@ -345,7 +345,6 @@ export const userVerification = async (req, res) => {
         }
       }),
     ]);
-    // res.locals.userId = iduser;
     res.status(200).send(`
       <!DOCTYPE html>
       <html>

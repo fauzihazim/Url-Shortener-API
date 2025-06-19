@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import { logger } from "../middleware/loggerMiddleware.js";
 import { dateTimeNow, messageToken, userIdToken } from "../middleware/morganTokens.js";
 import { addUrlAuth } from "../middleware/authmiddleware.js";
+import { accessLogStream } from "../utils/loggerUtils.js";
 
 const app = express();
 app.use(express.json());
@@ -21,7 +22,7 @@ morgan.token('userId', userIdToken);
 morgan.token("dateTimeNow", dateTimeNow);
 
 app.get('/d/:id', getLongUrl);
-app.post('/addUrl', morgan(':status | :url | :message | :userId | :dateTimeNow'), addUrlAuth, addUrl);
+app.post('/addUrl', morgan(':status | :url | :message | :userId | :dateTimeNow', { stream: accessLogStream }), addUrlAuth, addUrl);
 app.get('/getUrl/:id', getUrl);
 
 export default app;

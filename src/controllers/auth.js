@@ -3,6 +3,7 @@ import {google} from 'googleapis';
 import crypto from 'crypto';
 import 'dotenv/config';
 import bcrypt from 'bcryptjs';
+import { nowDatetime } from "../utils/nowDatetimeUtils.js";
 import { email, success } from "zod/v4";
 import {OauthUser, TraditionalUser, UserType} from "../models/User.js";
 import { generateAccessToken, generateRefreshToken } from "../utils/jwtUtils.js";
@@ -18,6 +19,7 @@ const oauth2Client = new google.auth.OAuth2(
   process.env.YOUR_CLIENT_SECRET,
   process.env.YOUR_REDIRECT_URL
 );
+const dateTimeNow = nowDatetime();
 const scopes = [
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile'
@@ -85,6 +87,7 @@ export const registerUser = async (req, res) => {
     const { email, password } = req.body;
     validateEmailAndPassword.parse({email, password});
     const findUser = await findingUser(email);
+    res.locals.dateTimeNow = dateTimeNow;
     if (findUser) {
       res.locals.userId = findUser.id;
       res.status(409).json({  
@@ -93,10 +96,10 @@ export const registerUser = async (req, res) => {
       });
       return;
     }
-    
     const newUser = new TraditionalUser(
       email,
-      password
+      password,
+      dateTimeNow
     );
     const saveUser = await newUser.save();
     res.locals.userId = saveUser.user.id;
@@ -182,6 +185,7 @@ const tokenExpired = () => {
 export const askNewToken = async(req, res) => {
   const email = req.query.email;
   const password = req.query.password;
+  res.locals.dateTimeNow = dateTimeNow;
   try {
     if (!email || !password) {
       return res.status(400).json({
@@ -272,6 +276,7 @@ const saveAndDeleteOldVerificationToken = async (userId, verificationToken) => {
 export const userVerification = async (req, res) => {
   const token = req.params.token;
   try {
+    res.locals.dateTimeNow = dateTimeNow;
     if (!token) {
       res.status(400).send(`
         <!DOCTYPE html>
@@ -309,6 +314,7 @@ export const userVerification = async (req, res) => {
       `);
       return;
     }
+    res.locals.userId = user.idUser;
     if (user.tokenExpire < new Date()) {
       res.status(400).send(`
         <!DOCTYPE html>
@@ -321,17 +327,16 @@ export const userVerification = async (req, res) => {
           </body>
         </html>
       `);
-      res.locals.userId = user.idUser;
       return;
     }
-    const iduser = user.idUser
+    const iduser = user.idUser;
     await prisma.$transaction([
       prisma.traditionalUser.update({
         where: {
           idUser: iduser,
         },
         data: {
-          verifiedAt: new Date(),
+          verifiedAt: dateTimeNow,
         },
       }),
       prisma.verificationToken.deleteMany({
@@ -340,7 +345,7 @@ export const userVerification = async (req, res) => {
         }
       }),
     ]);
-    res.locals.userId = iduser;
+    // res.locals.userId = iduser;
     res.status(200).send(`
       <!DOCTYPE html>
       <html>
@@ -361,6 +366,7 @@ export const userVerification = async (req, res) => {
 }
 
 export const login = async (req, res) => {
+  res.locals.dateTimeNow = dateTimeNow;
   try {
     const { email, password } = req.body;
     validateEmailAndPassword.parse({email, password});

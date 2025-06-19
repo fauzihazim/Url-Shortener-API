@@ -2,6 +2,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid';
 import { baseUrl } from "../../script.js";
 import { z } from 'zod';
+import { nowDatetime } from "../utils/nowDatetimeUtils.js";
 
 const prisma = new PrismaClient();
 
@@ -68,19 +69,22 @@ export const getUrl = async (req, res) => {
 export const addUrl = async (req, res) => {
     try {
         const { longUrl } = req.body;
+        const dateTimeNow = nowDatetime();
         if (!z.string().url().safeParse(longUrl).success) {
             return res.status(400).json({
                 status: "failed",
                 error: 'Invalid URL format'
             });
         }
+        res.locals.dateTimeNow = dateTimeNow;
         const newUrl = await prisma.url.create({
             data: {
                 longUrl,
+                idUser: res.locals.userId,
                 shortUrl: uuidv4(),
-                createdAt: nowDatetime()
+                createdAt: dateTimeNow
             }
-        })
+        });
         const updatedUrl = await prisma.url.update({
             where: { id: newUrl.id },
             data: { shortUrl: generateShort(newUrl.id) },
@@ -98,13 +102,6 @@ export const addUrl = async (req, res) => {
             error: "Internal server error"
         });
     }
-}
-
-const nowDatetime = () => {
-    const date = new Date();
-    const now = new Date(date.getTime() + 7 * 60 * 60 * 1000);
-    const isoNow = now.toISOString();
-    return isoNow;
 }
 
 const generateShort = (id) => {

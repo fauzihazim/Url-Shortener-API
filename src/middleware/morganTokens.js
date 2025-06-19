@@ -9,3 +9,7 @@ export const userIdToken = (req, res) => {
 export const responseBodyToken = (req, res) => {
   return JSON.stringify(res.body) || "";
 };
+
+export const dateTimeNow = (req, res) => {
+  return res.locals.dateTimeNow || "";
+}

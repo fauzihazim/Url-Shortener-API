@@ -1,7 +1,9 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import bcrypt from "bcryptjs";
+// import { nowDatetime } from "../utils/nowDatetimeUtils.js";
 
 const prisma = new PrismaClient();
+// const dateTimeNow = nowDatetime();
 
 export const UserType = Object.freeze({
   OAUTH: 'OAUTH',
@@ -9,9 +11,9 @@ export const UserType = Object.freeze({
 });
 
 class User {
-  constructor(email, type = UserType.TRADITIONAL, createdAt = new Date()) {
+  constructor(email, type = UserType.TRADITIONAL, createdAt) {
     this.email = email;
-    this.createdAt = createdAt.toISOString();
+    this.createdAt = createdAt;
 
     if (!Object.values(UserType).includes(type)) {
       throw new Error(`Invalid user type. Valid types are: ${Object.values(UserType).join(', ')}`);
@@ -66,13 +68,14 @@ export class OauthUser extends User {
 }
 
 export class TraditionalUser extends User {
-  constructor(email, password, token = null, type = UserType.TRADITIONAL, createdAt = new Date()) {
+  constructor(email, password, createdAt, token = null, type = UserType.TRADITIONAL) {
     super(email, type, createdAt);
     this.password = password;
     this.token = token;
   }
   async save() {
     try {
+      // res.locals.dateTimeNow = this.createdAt;
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(this.password, salt);
       const result = await prisma.user.create({

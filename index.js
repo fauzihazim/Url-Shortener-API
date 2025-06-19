@@ -1,5 +1,4 @@
 import express from 'express';
-// const app = express();
 
 import cors from "cors";
 
@@ -7,10 +6,9 @@ const app = express();
 app.use(express.json());
 const corsOptions ={
     origin:'http://localhost:3001', 
-    credentials:true,            //access-control-allow-credentials:true
+    credentials:true,
     optionSuccessStatus:200
 }
-app.use(cors(corsOptions));
 
 import urlRoutes from './src/routes/urlRoutes.js';
 app.use(urlRoutes);

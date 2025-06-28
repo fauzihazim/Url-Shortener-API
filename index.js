@@ -1,4 +1,6 @@
 import express from 'express';
+import portfinder from 'portfinder';
+
 
 import cors from "cors";
 
@@ -17,11 +19,24 @@ import authRoutes from "./src/routes/authRoutes.js";
 import { authenticateAccessToken } from './src/middleware/authmiddleware.js';
 app.use(authRoutes);
 
-app.get('/', authenticateAccessToken, (req, res) => {
-    res.send('Hello from Node.js server!');
+app.get('/', (req, res) => {
+    res.send('Hello from Node.js in port 3001!');
 });
 
-const port = 3000;
-app.listen(port, () => {
-    console.log(`Server listening on port ${port}`);
+// const port = 3001;
+// app.listen(port, () => {
+//     console.log(`Server listening on port ${port}`);
+// });
+
+portfinder.basePort = 3000; // Start checking from port 3000
+
+portfinder.getPort((err, port) => {
+  if (err) {
+    console.error('Error finding available port:', err);
+    return;
+  }
+
+  app.listen(port, () => {
+    console.log(`Server running on http://localhost:${port}`);
+  });
 });

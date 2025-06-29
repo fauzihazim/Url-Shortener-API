@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  node3000:
+    build: .
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - CORS_ORIGIN=http://localhost:3002
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/prisma
+    working_dir: /app
+    command: sh -c "npx prisma generate && node src/index.js"
+
+  node3001:
+    build: .
+    environment:
+      - PORT=3001
+      - NODE_ENV=production
+      - CORS_ORIGIN=http://localhost:3002
+      - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3001:3001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/prisma
+    working_dir: /app
+    command: sh -c "npx prisma generate && node src/index.js"
+
+  nginx:
+    build: ./nginx
+    ports:
+      - "80:80"
+    depends_on:
+      - node3000
+      - node3001

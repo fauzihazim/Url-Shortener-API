@@ -4,7 +4,7 @@ import cors from "cors";
 import morgan from 'morgan';
 import { logger } from "../middleware/loggerMiddleware.js";
 import { dateTimeNow, messageToken, userIdToken } from "../middleware/morganTokens.js";
-import { addUrlAuth } from "../middleware/authmiddleware.js";
+import { addUrlAuth } from "../middleware/authMiddleware.js";
 import { accessLogStream } from "../utils/loggerUtils.js";
 
 const app = express();

@@ -74,10 +74,10 @@ app3001.get('/', (req, res) => {
 });
 
 // Start both servers
-app3000.listen(3000, '0.0.0.0', () => {
+app3000.listen(3000, () => {
   console.log(`Main service running on http://localhost:3000`);
 });
 
-app3001.listen(3001, '0.0.0.0', () => {
+app3001.listen(3001, () => {
   console.log(`Secondary service running on http://localhost:3001`);
 });

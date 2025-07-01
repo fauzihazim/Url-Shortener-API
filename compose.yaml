@@ -1,85 +1,24 @@
-# version: '3.8'
-
-# services:
-#   node3000:
-#     build: .
-#     environment:
-#       - PORT=3000
-#       - NODE_ENV=production
-#       - CORS_ORIGIN=http://localhost:3002
-#       - DATABASE_URL=${DATABASE_URL}
-#     ports:
-#       - "3000:3000"
-#     volumes:
-#       - .:/app
-#       - /app/node_modules
-#       - /app/prisma
-#     working_dir: /app
-#     command: sh -c "npx prisma generate && node index.js"
-
-#   node3001:
-#     build: .
-#     environment:
-#       - PORT=3001
-#       - NODE_ENV=production
-#       - CORS_ORIGIN=http://localhost:3002
-#       - DATABASE_URL=${DATABASE_URL}
-#     ports:
-#       - "3001:3001"
-#     volumes:
-#       - .:/app
-#       - /app/node_modules
-#       - /app/prisma
-#     working_dir: /app
-#     command: sh -c "npx prisma generate && node index.js"
-
-#   nginx:
-#     build: ./nginx
-#     ports:
-#       - "80:80"
-#     depends_on:
-#       - node3000
-#       - node3001
-
-# networks:
-#   app-network:
-#     driver: bridge
-
 version: '3.8'
-
 services:
   node-app1:
     build: .
-    # environment:
-    #   - PORT=3000 # Set the port for this instance
-    #   - PORT=3001
     ports:
-      - "3000:3000"  # Map host:3000 → container:3000
-      - "3001:3001"  # Map host:3001 → container:3001
+      - "3000:3000"
+      - "3001:3001"
     networks:
       - app-network
-
-  # node-app2:
-  #   build: .
-  #   environment:
-  #     - PORT=3001 # Set the port for this instance
-  #   networks:
-  #     - app-network
-
   nginx:
     build:
       context: /nginx
-      dockerfile: Dockerfile # If you have a Dockerfile for Nginx, otherwise use 'image: nginx:latest'
+      dockerfile: Dockerfile
     ports:
-      - "80:80" # Map host port 80 to container port 80
+      - "80:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - node-app1
-      # - node-app2
     networks:
       - app-network
-
 networks:
   app-network:
     driver: bridge

@@ -48,3 +48,9 @@ GMAIL_REFRESH_TOKEN = paste-your-gmail-refresh-token-here
 4. Download and start Docker
 5. Run Docker Compose
 ``` docker-compose up --build ```
+
+
+## Authors
+
+- [@fauzihazim](https://www.github.com/fauzihazim)
+

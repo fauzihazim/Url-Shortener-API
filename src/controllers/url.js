@@ -67,8 +67,10 @@ export const getUrl = async (req, res) => {
 }
 
 export const addUrl = async (req, res) => {
+    const { longUrl } = req.body;
+    console.log(longUrl);
+    
     try {
-        const { longUrl } = req.body;
         const dateTimeNow = nowDatetime();
         if (!z.string().url().safeParse(longUrl).success) {
             return res.status(400).json({
@@ -97,6 +99,7 @@ export const addUrl = async (req, res) => {
         }});
         
     } catch (error) {
+        console.error('Error adding url:', error);
         res.status(500).json({
             status: "failed",
             error: "Internal server error"
@@ -118,4 +121,19 @@ function getRandomInt() {
   const min = Math.ceil(0);
   const max = Math.floor(62);
   return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+export const analyticsUrl = () => {
+    try {
+        const shortUrl = req.params.id;
+        console.log("The short URL, ", shortUrl);
+        res.status(200).json({
+            status: "success"
+        });
+    } catch (error) {
+        res.status(500).json({
+            status: "failed",
+            error: "Internal server error"
+        });
+    }
 }

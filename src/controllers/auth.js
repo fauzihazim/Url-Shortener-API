@@ -96,6 +96,11 @@ export const registerUser = async (req, res) => {
       });
       return;
     }
+    
+    const verificationToken = generateVerificationToken();
+    console.log("Verification Token: ", verificationToken);
+    
+    await sendVerificationEmail(email, verificationToken);
     const newUser = new TraditionalUser(
       email,
       password,
@@ -103,8 +108,6 @@ export const registerUser = async (req, res) => {
     );
     const saveUser = await newUser.save();
     res.locals.userId = saveUser.user.id;
-    const verificationToken = generateVerificationToken();
-    await sendVerificationEmail(email, verificationToken);
     await saveAndDeleteOldVerificationToken(saveUser.user.id, verificationToken);
     res.status(201).json({
       status  : "success",
@@ -156,6 +159,8 @@ const sendVerificationEmail = async (email, verificationToken) => {
       refreshToken: process.env.GMAIL_REFRESH_TOKEN,
     },
   });
+  console.log(process.env.GMAIL_CLIENT_ID, process.env.GMAIL_CLIENT_SECRET, process.env.GMAIL_REFRESH_TOKEN);
+  
   const mailOptions = {
     from: 'beta4590@gmail.com',
     to: email,
@@ -168,8 +173,12 @@ const sendVerificationEmail = async (email, verificationToken) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
+    // const result = await transport.sendMail(mailOptions);
+    console.log('Email sent:', info);
     return info;
   } catch (error) {
+    // throw error;
+    console.error('Error sending email:', error);
     throw error;
   }
 }

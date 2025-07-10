@@ -1,5 +1,5 @@
 import express from "express";
-import { addUrl, getLongUrl, getUrl } from "../controllers/url.js";
+import { addUrl, analyticsUrl, getLongUrl, getUrl } from "../controllers/url.js";
 import cors from "cors";
 import morgan from 'morgan';
 import { authenticateAccessToken } from "../middleware/authMiddleware.js";
@@ -23,7 +23,7 @@ morgan.token('userId', userIdToken);
 morgan.token("dateTimeNow", dateTimeNow);
 
 app.get('/d/:id', getLongUrl);
-app.get('/analytics/:id', authenticateAccessToken, )
+app.get('/analytics/:id', authenticateAccessToken, analyticsUrl);
 app.post('/addUrl', morgan(':status | :url | :message | :userId | :dateTimeNow', { stream: accessLogStream }), addUrlAuth, addUrl);
 app.get('/getUrl/:id', getUrl);
 

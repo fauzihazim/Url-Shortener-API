@@ -11,9 +11,18 @@ model Url {
   id                Int                           @id @default(autoincrement())
   longUrl           String                        @db.Text
   shortUrl          String                        @unique @db.VarChar(255)
+  analyticsUrl      Boolean                       @default(false)
   createdAt         DateTime                      @default(now()) @db.Timestamp(6)
   user              User?                         @relation(fields: [idUser], references: [id])
   idUser            Int?
+  urlAnalytics      AnalyticsUrl?
+}
+
+model AnalyticsUrl {
+  id                  Int                         @id
+  url                 Url                         @relation(fields: [id], references: [id])
+  totalClick          Int                         @default(0)
+  lastClicked         DateTime?                   @db.Timestamp(6)
 }
 
 model User {

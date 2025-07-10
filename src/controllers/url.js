@@ -87,15 +87,30 @@ export const addUrl = async (req, res) => {
                 createdAt: dateTimeNow
             }
         });
-        const updatedUrl = await prisma.url.update({
-            where: { id: newUrl.id },
-            data: { shortUrl: generateShort(newUrl.id) },
-        });
+        
+        const updatedUrl = await prisma.$transaction(async (tx) => {
+            if (!res.locals.userId) {
+                const updatedUrl = await tx.url.update({
+                    where: { id: newUrl.id },
+                    data: { shortUrl: generateShort(newUrl.id) },
+                });
+                return updatedUrl;
+            }
+            const updatedUrl = await tx.url.update({
+                where: { id: newUrl.id },
+                data: { shortUrl: generateShort(newUrl.id), analyticsUrl: true },
+            });
+            await tx.analyticsUrl.create({
+                data: { url: updatedUrl.shortUrl }
+            });
+            return updatedUrl;
+        })
         res.status(201).json({
             status: "success",
             message: "Url added successfully",
         data: {
             shortUrl: `${baseUrl}/d/${updatedUrl.shortUrl}`,
+            analyticsUrl: newUrl.idUser
         }});
         
     } catch (error) {
@@ -123,7 +138,7 @@ function getRandomInt() {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export const analyticsUrl = () => {
+export const analyticsUrl = (req, res) => {
     try {
         const shortUrl = req.params.id;
         console.log("The short URL, ", shortUrl);

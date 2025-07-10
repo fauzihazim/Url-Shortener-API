@@ -17,7 +17,8 @@ export const authenticateAccessToken = (req, res, next) => {
         error: "Invalid token"
       });
     }
-    req.userId = user.sub;
+    // req.userId = user.sub;
+    res.locals.userId = user.sub;
     next();
   });
 };

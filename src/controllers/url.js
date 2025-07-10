@@ -9,20 +9,40 @@ const prisma = new PrismaClient();
 export const getLongUrl = async (req, res) => {
     try {
         const shortUrl = req.params.id;
+        console.log("Short URL ", shortUrl);
+        
+        console.log("Here");
+        
         const longUrl = await prisma.url.findUnique({
             where: {
                 shortUrl: shortUrl
             },
             select: {
+                id: true,
+                analyticsUrl: true,
                 longUrl: true,
             },
         })
+        console.log("Here");
         if (longUrl === null) {
             res.status(404).json({
                 status: "failed",
                 error: "Short URL not found"
             });
             return;
+        }
+        // tx.url.update({
+        //             where: { id: newUrl.id },
+        //             data: { shortUrl: generateShort(newUrl.id) },
+        //         });
+        if ( longUrl.analyticsUrl ) {
+            await prisma.analyticsUrl.update ({
+                where: { id: longUrl.id },
+                data: {
+                    totalClick: { increment: 1 },
+                    lastClicked: nowDatetime(),
+                }
+            })
         }
         res.redirect(301, longUrl.longUrl);
     } catch (error) {
@@ -101,7 +121,7 @@ export const addUrl = async (req, res) => {
                 data: { shortUrl: generateShort(newUrl.id), analyticsUrl: true },
             });
             await tx.analyticsUrl.create({
-                data: { url: updatedUrl.shortUrl }
+                data: { id: updatedUrl.id }
             });
             return updatedUrl;
         })
@@ -138,12 +158,36 @@ function getRandomInt() {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-export const analyticsUrl = (req, res) => {
+export const analyticsUrl = async (req, res) => {
     try {
         const shortUrl = req.params.id;
         console.log("The short URL, ", shortUrl);
+        const userId = res.locals.userId;
+        console.log("The User Id, ", userId);
+        const getUrl = await prisma.url.findUnique ({
+            where: { shortUrl: shortUrl },
+            select: {
+                id: true,
+                longUrl: true
+            }
+        });
+        const getAnalyticsUrl = await prisma.analyticsUrl.findUnique ({
+            where: { id: getUrl.id },
+            select: {
+                totalClick: true,
+                lastClicked: true,
+            }
+        });
+        console.log("Get Url Id", getUrl);
+        
+        
         res.status(200).json({
-            status: "success"
+            status: "success",
+            data: {
+                longUrl: getUrl.longUrl,
+                totalClick: getAnalyticsUrl.totalClick,
+                lastClicked: getAnalyticsUrl.lastClicked
+            }
         });
     } catch (error) {
         res.status(500).json({

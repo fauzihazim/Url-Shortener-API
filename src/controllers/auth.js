@@ -173,11 +173,8 @@ const sendVerificationEmail = async (email, verificationToken) => {
   };
   try {
     const info = await transporter.sendMail(mailOptions);
-    // const result = await transport.sendMail(mailOptions);
-    console.log('Email sent:', info);
     return info;
   } catch (error) {
-    // throw error;
     console.error('Error sending email:', error);
     throw error;
   }
@@ -395,16 +392,21 @@ export const login = async (req, res) => {
         },
       },
     });
-    const { traditionalUser, ...user } = findUser;
-    res.locals.userId = user.id;
-    if (!user) {
+    const { traditionalUser, ...user } = findUser ||
+    { 
+      id: false,
+      traditionalUser: {
+          password: false
+      }
+    };
+    if (!user || !user.id) {
       res.status(404).json({
         status: "failed",
         error: "User didn't find"
       });
       return;
     }
-    if (!traditionalUser) {
+    if (!traditionalUser || !traditionalUser.password) {
       res.status(401).json({
         status: "failed",
         error: "User hasn't registered"
